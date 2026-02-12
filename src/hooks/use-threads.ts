@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import { get, post, ApiError } from "@/lib/api"
-import type { ThreadSummary, ThreadListResponse, SearchResponse } from "@/types/api"
+import type {
+  ThreadSummary,
+  ThreadListResponse,
+  SearchResponse,
+  SearchResultEmail,
+} from "@/types/api"
 
 const PAGE_SIZE = 50
 const DEBOUNCE_MS = 300
@@ -51,18 +56,40 @@ export function useThreads(
             keywords: searchQuery.trim(),
             page,
             page_size: PAGE_SIZE,
-          }).then((data): ThreadListResponse => ({
-            threads: data.results.map((r) => ({
-              id: r.thread_id,
-              subject: r.subject,
-              last_updated: r.received_at,
-              email_count: 1,
-              latest_sender: r.sender,
-            })),
-            total: data.total,
-            page: data.page,
-            page_size: data.page_size,
-          }))
+          }).then((data): ThreadListResponse => {
+            // Group emails by thread_id so a thread appears once, not per-email
+            const threadMap = new Map<string, SearchResultEmail[]>()
+            for (const r of data.results) {
+              const existing = threadMap.get(r.thread_id)
+              if (existing) {
+                existing.push(r)
+              } else {
+                threadMap.set(r.thread_id, [r])
+              }
+            }
+
+            const threads: ThreadSummary[] = Array.from(threadMap.values()).map(
+              (emails) => {
+                const latest = emails.reduce((a, b) =>
+                  a.received_at > b.received_at ? a : b,
+                )
+                return {
+                  id: latest.thread_id,
+                  subject: latest.subject,
+                  last_updated: latest.received_at,
+                  email_count: emails.length,
+                  latest_sender: latest.sender,
+                }
+              },
+            )
+
+            return {
+              threads,
+              total: threadMap.size,
+              page: data.page,
+              page_size: data.page_size,
+            }
+          })
         : get<ThreadListResponse>(
             `/mailboxes/${mailboxId}/threads?page=${page}&page_size=${PAGE_SIZE}`,
           )
