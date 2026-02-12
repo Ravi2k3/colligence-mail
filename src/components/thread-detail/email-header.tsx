@@ -7,7 +7,9 @@ import {
   extractSenderEmail,
   getInitials,
   formatRelativeDate,
+  getAvatarColors,
 } from "@/lib/format"
+import { cn } from "@/lib/utils"
 import type { EmailResponse } from "@/types/api"
 
 interface EmailHeaderProps {
@@ -17,10 +19,11 @@ interface EmailHeaderProps {
 }
 
 export function EmailHeader({ email, onClick, isExpanded }: EmailHeaderProps) {
-  const senderName = extractSenderName(email.sender)
-  const senderEmail = extractSenderEmail(email.sender)
-  const initials = getInitials(senderName)
-  const displayName = senderName !== senderEmail ? senderName : senderEmail
+  const senderName: string = extractSenderName(email.sender)
+  const senderEmail: string = extractSenderEmail(email.sender)
+  const initials: string = getInitials(senderName)
+  const displayName: string = senderName !== senderEmail ? senderName : senderEmail
+  const { bgClass, textClass } = getAvatarColors(senderEmail)
 
   return (
     <button
@@ -28,7 +31,7 @@ export function EmailHeader({ email, onClick, isExpanded }: EmailHeaderProps) {
       className="flex w-full items-start gap-3 text-left"
     >
       <Avatar className="mt-0.5 size-10 shrink-0">
-        <AvatarFallback className="bg-muted text-xs font-medium text-muted-foreground">
+        <AvatarFallback className={cn("text-xs font-medium", bgClass, textClass)}>
           {initials}
         </AvatarFallback>
       </Avatar>

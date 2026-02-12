@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from "react"
+import { RefreshCwIcon } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import {
   ResizablePanelGroup,
@@ -19,6 +22,7 @@ import { useMailboxes } from "@/hooks/use-mailboxes"
 import { useMailboxStats } from "@/hooks/use-mailbox-stats"
 import { useThreads } from "@/hooks/use-threads"
 import { useThreadEmails } from "@/hooks/use-thread-emails"
+import { useSyncStatus } from "@/hooks/use-sync-status"
 
 type NavFilter = "all" | "inbound" | "outbound"
 type MobileView = "list" | "detail"
@@ -33,13 +37,29 @@ export function MailboxPage({ onSignOut }: MailboxPageProps) {
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [activeFilter, setActiveFilter] = useState<NavFilter>("all")
   const [mobileView, setMobileView] = useState<MobileView>("list")
+  const [showSyncResult, setShowSyncResult] = useState<boolean>(false)
 
   const { mailboxes } = useMailboxes()
   const { stats } = useMailboxStats(selectedMailboxId)
-  const { threads, total, loading: threadsLoading, error: threadsError, hasMore, loadMore } =
+  const { threads, total, loading: threadsLoading, error: threadsError, hasMore, loadMore, refresh, markAsRead } =
     useThreads(selectedMailboxId, searchQuery)
   const { emails, loading: emailsLoading, error: emailsError } =
     useThreadEmails(selectedMailboxId, selectedThreadId)
+
+  const handleSyncComplete = useCallback(() => {
+    refresh()
+    setShowSyncResult(true)
+  }, [refresh])
+
+  const { syncStatus, triggerSync, isSyncing, error: syncError } =
+    useSyncStatus(selectedMailboxId, handleSyncComplete)
+
+  // Auto-dismiss sync result after 5 seconds
+  useEffect(() => {
+    if (!showSyncResult) return
+    const timer = setTimeout(() => setShowSyncResult(false), 5000)
+    return () => clearTimeout(timer)
+  }, [showSyncResult])
 
   useEffect(() => {
     if (mailboxes.length > 0 && selectedMailboxId === null) {
@@ -61,7 +81,8 @@ export function MailboxPage({ onSignOut }: MailboxPageProps) {
   const handleSelectThread = useCallback((threadId: string) => {
     setSelectedThreadId(threadId)
     setMobileView("detail")
-  }, [])
+    markAsRead(threadId)
+  }, [markAsRead])
 
   const handleBackToList = useCallback(() => {
     setSelectedThreadId(null)
@@ -102,6 +123,27 @@ export function MailboxPage({ onSignOut }: MailboxPageProps) {
     <ThreadDetailEmpty />
   )
 
+  const syncProgressPercent: number =
+    syncStatus && syncStatus.folders_total > 0
+      ? Math.round((syncStatus.folders_done / syncStatus.folders_total) * 100)
+      : 0
+
+  const syncStatusText: string | null = (() => {
+    if (syncError) return `Sync failed: ${syncError}`
+    if (!syncStatus) return null
+    if (syncStatus.status === "syncing" && syncStatus.current_folder) {
+      return `Syncing ${syncStatus.current_folder}...`
+    }
+    if (syncStatus.status === "syncing") return "Starting sync..."
+    if (syncStatus.status === "completed" && showSyncResult) {
+      return `Sync complete: ${syncStatus.emails_stored} stored, ${syncStatus.emails_skipped} skipped`
+    }
+    if (syncStatus.status === "failed" && syncStatus.error) {
+      return `Sync failed: ${syncStatus.error}`
+    }
+    return null
+  })()
+
   return (
     <SidebarProvider>
       <AppSidebar
@@ -115,10 +157,30 @@ export function MailboxPage({ onSignOut }: MailboxPageProps) {
       />
 
       <SidebarInset>
-        <header className="bg-background sticky top-0 z-10 flex h-12 shrink-0 items-center gap-2 border-b border-border px-3">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-1 h-4" />
-          <h1 className="text-sm font-medium">Colligence Mail</h1>
+        <header className="bg-background sticky top-0 z-10 shrink-0 border-b border-border">
+          <div className="flex h-12 items-center gap-2 px-3">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-1 h-full" />
+            <h1 className="flex-1 text-sm font-medium">Colligence Mail</h1>
+
+            {syncStatusText && (
+              <span className="text-xs text-muted-foreground">{syncStatusText}</span>
+            )}
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={triggerSync}
+              disabled={isSyncing || !selectedMailboxId}
+              title="Sync mailbox"
+            >
+              <RefreshCwIcon className={`size-4 ${isSyncing ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
+
+          {isSyncing && (
+            <Progress value={syncProgressPercent} className="h-0.5 rounded-none" />
+          )}
         </header>
 
         {/* Desktop: resizable two-panel layout */}

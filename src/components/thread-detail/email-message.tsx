@@ -3,6 +3,7 @@ import { PaperclipIcon } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { EmailHeader } from "@/components/thread-detail/email-header"
 import { EmailBody } from "@/components/thread-detail/email-body"
+import { cn } from "@/lib/utils"
 import type { EmailResponse } from "@/types/api"
 
 interface EmailMessageProps {
@@ -16,8 +17,17 @@ export function EmailMessage({
   isExpanded,
   onToggle,
 }: EmailMessageProps) {
+  const isOutbound: boolean = email.direction === "outbound"
+
   return (
-    <div className="min-w-0 overflow-hidden rounded-lg border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
+    <div
+      className={cn(
+        "min-w-0 overflow-hidden rounded-lg border border-border shadow-sm transition-shadow hover:shadow-md",
+        isOutbound
+          ? "border-l-2 border-l-blue-400 bg-blue-50/50 dark:bg-blue-950/20"
+          : "bg-card",
+      )}
+    >
       <div className="px-5 py-3.5">
         <EmailHeader
           email={email}

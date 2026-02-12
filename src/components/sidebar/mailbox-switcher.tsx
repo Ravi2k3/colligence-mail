@@ -1,4 +1,4 @@
-import { ChevronsUpDownIcon, MailIcon } from "lucide-react"
+import { ChevronsUpDownIcon } from "lucide-react"
 
 import {
   DropdownMenu,
@@ -11,6 +11,9 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { cn } from "@/lib/utils"
+import { getAvatarColors } from "@/lib/format"
 import type { MailboxResponse } from "@/types/api"
 
 interface MailboxSwitcherProps {
@@ -25,6 +28,10 @@ export function MailboxSwitcher({
   onSelect,
 }: MailboxSwitcherProps) {
   const selected = mailboxes.find((mb) => mb.id === selectedId)
+  const selectedColors = selected ? getAvatarColors(selected.email) : null
+  const selectedInitial: string = selected
+    ? selected.email.charAt(0).toUpperCase()
+    : "?"
 
   return (
     <SidebarMenu>
@@ -32,9 +39,17 @@ export function MailboxSwitcher({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton size="lg">
-              <div className="bg-sidebar-primary flex size-7 items-center justify-center rounded-md">
-                <MailIcon className="size-4 text-sidebar-primary-foreground" />
-              </div>
+              <Avatar className="size-7 rounded-md">
+                <AvatarFallback
+                  className={cn(
+                    "rounded-md text-xs font-semibold",
+                    selectedColors?.bgClass ?? "bg-muted",
+                    selectedColors?.textClass ?? "text-muted-foreground",
+                  )}
+                >
+                  {selectedInitial}
+                </AvatarFallback>
+              </Avatar>
               <div className="flex min-w-0 flex-1 flex-col leading-tight">
                 <span className="truncate text-sm font-semibold">
                   {selected?.email ?? "Select mailbox"}
@@ -50,16 +65,31 @@ export function MailboxSwitcher({
             className="w-[--radix-dropdown-menu-trigger-width]"
             align="start"
           >
-            {mailboxes.map((mb) => (
-              <DropdownMenuItem
-                key={mb.id}
-                onSelect={() => onSelect(mb.id)}
-                className="gap-2"
-              >
-                <MailIcon className="size-4 text-muted-foreground" />
-                <span className="truncate">{mb.email}</span>
-              </DropdownMenuItem>
-            ))}
+            {mailboxes.map((mb) => {
+              const colors = getAvatarColors(mb.email)
+              const initial: string = mb.email.charAt(0).toUpperCase()
+
+              return (
+                <DropdownMenuItem
+                  key={mb.id}
+                  onSelect={() => onSelect(mb.id)}
+                  className="gap-2"
+                >
+                  <Avatar className="size-5 rounded">
+                    <AvatarFallback
+                      className={cn(
+                        "rounded text-[10px] font-semibold",
+                        colors.bgClass,
+                        colors.textClass,
+                      )}
+                    >
+                      {initial}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="truncate">{mb.email}</span>
+                </DropdownMenuItem>
+              )
+            })}
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

@@ -15,6 +15,9 @@ export interface ThreadSummary {
   last_updated: string
   email_count: number
   latest_sender: string | null
+  has_unread: boolean
+  snippet: string | null
+  has_attachments: boolean
 }
 
 export interface ThreadListResponse {
@@ -88,4 +91,20 @@ export interface SearchResponse {
   total: number
   page: number
   page_size: number
+}
+
+export interface SyncTriggerResponse {
+  status: string
+  mailbox_id: string
+  message: string
+}
+
+export interface SyncStatusResponse {
+  status: "idle" | "syncing" | "completed" | "failed"
+  current_folder: string
+  folders_done: number
+  folders_total: number
+  emails_stored: number
+  emails_skipped: number
+  error: string | null
 }

@@ -1,3 +1,5 @@
+import { PaperclipIcon } from "lucide-react"
+
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import {
@@ -5,6 +7,7 @@ import {
   extractSenderName,
   extractSenderEmail,
   getInitials,
+  getAvatarColors,
 } from "@/lib/format"
 import type { ThreadSummary } from "@/types/api"
 
@@ -19,14 +22,15 @@ export function ThreadListItem({
   isSelected,
   onClick,
 }: ThreadListItemProps) {
-  const senderName = thread.latest_sender
+  const senderName: string = thread.latest_sender
     ? extractSenderName(thread.latest_sender)
     : "Unknown"
-  const senderEmail = thread.latest_sender
+  const senderEmail: string = thread.latest_sender
     ? extractSenderEmail(thread.latest_sender)
     : ""
-  const initials = getInitials(senderName)
-  const displayName = senderName !== senderEmail ? senderName : senderEmail
+  const initials: string = getInitials(senderName)
+  const displayName: string = senderName !== senderEmail ? senderName : senderEmail
+  const { bgClass, textClass } = getAvatarColors(senderEmail || senderName)
 
   return (
     <button
@@ -39,16 +43,27 @@ export function ThreadListItem({
           : "border-l-2 border-l-transparent",
       )}
     >
-      <Avatar className="mt-0.5 size-9 shrink-0">
-        <AvatarFallback className="bg-muted text-xs font-medium text-muted-foreground">
-          {initials}
-        </AvatarFallback>
-      </Avatar>
+      {/* Colorful avatar with unread dot */}
+      <div className="relative mt-0.5 shrink-0">
+        <Avatar className="size-9">
+          <AvatarFallback className={cn("text-xs font-medium", bgClass, textClass)}>
+            {initials}
+          </AvatarFallback>
+        </Avatar>
+        {thread.has_unread && (
+          <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-blue-500 ring-2 ring-background" />
+        )}
+      </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         {/* Row 1: sender + meta */}
         <div className="flex min-w-0 items-center gap-2">
-          <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-foreground">
+          <span
+            className={cn(
+              "min-w-0 flex-1 truncate text-[13px] text-foreground",
+              thread.has_unread ? "font-bold" : "font-semibold",
+            )}
+          >
             {displayName}
           </span>
           <div className="flex shrink-0 items-center gap-1.5">
@@ -63,10 +78,27 @@ export function ThreadListItem({
           </div>
         </div>
 
-        {/* Row 2: subject */}
-        <p className="truncate text-[12px] leading-snug text-muted-foreground">
-          {thread.subject ?? "(no subject)"}
-        </p>
+        {/* Row 2: subject + attachment indicator */}
+        <div className="flex min-w-0 items-center gap-1.5">
+          <p
+            className={cn(
+              "min-w-0 flex-1 truncate text-[12px] leading-snug text-muted-foreground",
+              thread.has_unread && "font-semibold text-foreground",
+            )}
+          >
+            {thread.subject ?? "(no subject)"}
+          </p>
+          {thread.has_attachments && (
+            <PaperclipIcon className="size-3 shrink-0 text-muted-foreground" />
+          )}
+        </div>
+
+        {/* Row 3: body snippet */}
+        {thread.snippet && (
+          <p className="truncate text-xs leading-tight text-muted-foreground">
+            {thread.snippet}
+          </p>
+        )}
       </div>
     </button>
   )

@@ -18,6 +18,8 @@ interface UseThreadsResult {
   error: string | null
   hasMore: boolean
   loadMore: () => void
+  refresh: () => void
+  markAsRead: (threadId: string) => void
 }
 
 export function useThreads(
@@ -29,14 +31,15 @@ export function useThreads(
   const [page, setPage] = useState<number>(1)
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState<number>(0)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Reset when mailbox or search query changes
+  // Reset when mailbox, search query, or refresh key changes
   useEffect(() => {
     setThreads([])
     setTotal(0)
     setPage(1)
-  }, [mailboxId, searchQuery])
+  }, [mailboxId, searchQuery, refreshKey])
 
   useEffect(() => {
     if (!mailboxId) return
@@ -79,6 +82,9 @@ export function useThreads(
                   last_updated: latest.received_at,
                   email_count: emails.length,
                   latest_sender: latest.sender,
+                  has_unread: false,
+                  snippet: latest.body_text,
+                  has_attachments: false,
                 }
               },
             )
@@ -124,7 +130,7 @@ export function useThreads(
     }
 
     return doFetch()
-  }, [mailboxId, searchQuery, page])
+  }, [mailboxId, searchQuery, page, refreshKey])
 
   const hasMore = threads.length < total
 
@@ -134,5 +140,27 @@ export function useThreads(
     }
   }, [loading, hasMore])
 
-  return { threads, total, loading, error, hasMore, loadMore }
+  const refresh = useCallback(() => {
+    setRefreshKey((prev) => prev + 1)
+  }, [])
+
+  const markAsRead = useCallback(
+    (threadId: string) => {
+      // Optimistic update: immediately remove unread styling
+      setThreads((prev) =>
+        prev.map((t) =>
+          t.id === threadId ? { ...t, has_unread: false } : t,
+        ),
+      )
+      // Fire-and-forget API call to persist the read state
+      if (mailboxId) {
+        post(`/mailboxes/${mailboxId}/threads/${threadId}/read`).catch(
+          () => {},
+        )
+      }
+    },
+    [mailboxId],
+  )
+
+  return { threads, total, loading, error, hasMore, loadMore, refresh, markAsRead }
 }
