@@ -25,6 +25,7 @@ interface UseThreadsResult {
 export function useThreads(
   mailboxId: string | null,
   searchQuery: string,
+  direction: string | null,
 ): UseThreadsResult {
   const [threads, setThreads] = useState<ThreadSummary[]>([])
   const [total, setTotal] = useState<number>(0)
@@ -39,7 +40,7 @@ export function useThreads(
     setThreads([])
     setTotal(0)
     setPage(1)
-  }, [mailboxId, searchQuery, refreshKey])
+  }, [mailboxId, searchQuery, direction, refreshKey])
 
   useEffect(() => {
     if (!mailboxId) return
@@ -97,7 +98,7 @@ export function useThreads(
             }
           })
         : get<ThreadListResponse>(
-            `/mailboxes/${mailboxId}/threads?page=${page}&page_size=${PAGE_SIZE}`,
+            `/mailboxes/${mailboxId}/threads?page=${page}&page_size=${PAGE_SIZE}${direction ? `&direction=${direction}` : ""}`,
           )
 
       fetchPromise
@@ -130,7 +131,7 @@ export function useThreads(
     }
 
     return doFetch()
-  }, [mailboxId, searchQuery, page, refreshKey])
+  }, [mailboxId, searchQuery, direction, page, refreshKey])
 
   const hasMore = threads.length < total
 

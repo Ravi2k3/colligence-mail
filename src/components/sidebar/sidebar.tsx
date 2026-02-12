@@ -63,6 +63,7 @@ interface AppSidebarProps {
   activeFilter: NavFilter
   onFilterChange: (filter: NavFilter) => void
   onSignOut: () => void
+  onShowSkippedEmails: () => void
 }
 
 export function AppSidebar({
@@ -73,6 +74,7 @@ export function AppSidebar({
   activeFilter,
   onFilterChange,
   onSignOut,
+  onShowSkippedEmails,
 }: AppSidebarProps) {
   const selectedMailbox = mailboxes.find((mb) => mb.id === selectedMailboxId)
   const userEmail: string = selectedMailbox?.email ?? "user@example.com"
@@ -168,7 +170,7 @@ export function AppSidebar({
                 </SidebarMenuItem>
 
                 <SidebarMenuItem>
-                  <SidebarMenuButton className="cursor-default hover:bg-transparent active:bg-transparent">
+                  <SidebarMenuButton onClick={onShowSkippedEmails}>
                     <FilterXIcon className="text-muted-foreground" />
                     <span>{stats.skipped_count.toLocaleString()} filtered</span>
                   </SidebarMenuButton>

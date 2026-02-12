@@ -93,6 +93,22 @@ export interface SearchResponse {
   page_size: number
 }
 
+export interface SkippedEmailSummary {
+  sender: string
+  subject: string | null
+  category: string
+  skip_reason: string
+  direction: string
+  received_at: string
+}
+
+export interface SkippedEmailListResponse {
+  items: SkippedEmailSummary[]
+  total: number
+  page: number
+  page_size: number
+}
+
 export interface SyncTriggerResponse {
   status: string
   mailbox_id: string

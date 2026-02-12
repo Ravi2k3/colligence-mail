@@ -15,6 +15,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/sidebar/sidebar"
+import { SkippedEmailsSheet } from "@/components/sidebar/skipped-emails-sheet"
 import { ThreadList } from "@/components/thread-list/thread-list"
 import { ThreadDetail } from "@/components/thread-detail/thread-detail"
 import { ThreadDetailEmpty } from "@/components/thread-detail/thread-detail-empty"
@@ -38,11 +39,13 @@ export function MailboxPage({ onSignOut }: MailboxPageProps) {
   const [activeFilter, setActiveFilter] = useState<NavFilter>("all")
   const [mobileView, setMobileView] = useState<MobileView>("list")
   const [showSyncResult, setShowSyncResult] = useState<boolean>(false)
+  const [showSkippedEmails, setShowSkippedEmails] = useState<boolean>(false)
 
   const { mailboxes } = useMailboxes()
   const { stats } = useMailboxStats(selectedMailboxId)
+  const direction: string | null = activeFilter === "all" ? null : activeFilter
   const { threads, total, loading: threadsLoading, error: threadsError, hasMore, loadMore, refresh, markAsRead } =
-    useThreads(selectedMailboxId, searchQuery)
+    useThreads(selectedMailboxId, searchQuery, direction)
   const { emails, loading: emailsLoading, error: emailsError } =
     useThreadEmails(selectedMailboxId, selectedThreadId)
 
@@ -94,13 +97,12 @@ export function MailboxPage({ onSignOut }: MailboxPageProps) {
     setSearchQuery("")
   }, [])
 
-  // TODO: Add direction param to GET /threads backend endpoint
-  const filteredThreads = activeFilter === "all"
-    ? threads
-    : threads
+  const handleShowSkippedEmails = useCallback(() => {
+    setShowSkippedEmails(true)
+  }, [])
 
   const threadListProps = {
-    threads: filteredThreads,
+    threads,
     total,
     loading: threadsLoading,
     error: threadsError,
@@ -154,6 +156,7 @@ export function MailboxPage({ onSignOut }: MailboxPageProps) {
         activeFilter={activeFilter}
         onFilterChange={handleFilterChange}
         onSignOut={onSignOut}
+        onShowSkippedEmails={handleShowSkippedEmails}
       />
 
       <SidebarInset>
@@ -213,6 +216,12 @@ export function MailboxPage({ onSignOut }: MailboxPageProps) {
           )}
         </div>
       </SidebarInset>
+
+      <SkippedEmailsSheet
+        mailboxId={selectedMailboxId}
+        open={showSkippedEmails}
+        onOpenChange={setShowSkippedEmails}
+      />
     </SidebarProvider>
   )
 }
