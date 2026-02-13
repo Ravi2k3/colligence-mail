@@ -1,9 +1,10 @@
-import { ChevronsUpDownIcon } from "lucide-react"
+import { ChevronsUpDownIcon, LogOutIcon } from "lucide-react"
 
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -20,12 +21,14 @@ interface MailboxSwitcherProps {
   mailboxes: MailboxResponse[]
   selectedId: string | null
   onSelect: (mailboxId: string) => void
+  onSignOut: () => void
 }
 
 export function MailboxSwitcher({
   mailboxes,
   selectedId,
   onSelect,
+  onSignOut,
 }: MailboxSwitcherProps) {
   const selected = mailboxes.find((mb) => mb.id === selectedId)
   const selectedColors = selected ? getAvatarColors(selected.email) : null
@@ -90,6 +93,13 @@ export function MailboxSwitcher({
                 </DropdownMenuItem>
               )
             })}
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem onSelect={onSignOut} className="gap-2">
+              <LogOutIcon className="size-4" />
+              <span>Sign out</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

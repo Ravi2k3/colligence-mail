@@ -2,7 +2,6 @@ import {
   InboxIcon,
   ArrowDownLeftIcon,
   ArrowUpRightIcon,
-  LogOutIcon,
   ZapIcon,
   MailIcon,
   CalendarDaysIcon,
@@ -13,7 +12,6 @@ import {
 import {
   Sidebar as SidebarRoot,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -22,22 +20,9 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarMenuBadge,
-  SidebarSeparator,
 } from "@/components/ui/sidebar"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { MailboxSwitcher } from "@/components/sidebar/mailbox-switcher"
-import { cn } from "@/lib/utils"
-import {
-  getAvatarColors,
-  formatDateRange,
-  capitalizeCategory,
-} from "@/lib/format"
+import { formatDateRange, capitalizeCategory } from "@/lib/format"
 import type { MailboxResponse, MailboxStats } from "@/types/api"
 
 type NavFilter = "all" | "inbound" | "outbound"
@@ -76,11 +61,6 @@ export function AppSidebar({
   onSignOut,
   onShowSkippedEmails,
 }: AppSidebarProps) {
-  const selectedMailbox = mailboxes.find((mb) => mb.id === selectedMailboxId)
-  const userEmail: string = selectedMailbox?.email ?? "user@example.com"
-  const userColors = getAvatarColors(userEmail)
-  const userInitial: string = userEmail.charAt(0).toUpperCase()
-
   // Sort categories by count descending
   const sortedCategories: [string, number][] = stats
     ? Object.entries(stats.category_breakdown).sort(
@@ -90,9 +70,9 @@ export function AppSidebar({
 
   return (
     <SidebarRoot collapsible="offcanvas">
-      {/* Branding header */}
-      <SidebarHeader className="px-4 py-3">
-        <div className="flex items-center gap-2.5">
+      <SidebarHeader>
+        {/* Branding */}
+        <div className="flex items-center gap-2.5 px-2 pt-1">
           <div className="flex size-7 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600">
             <ZapIcon className="size-4 text-white" />
           </div>
@@ -100,20 +80,15 @@ export function AppSidebar({
             Colligence Mail
           </span>
         </div>
-      </SidebarHeader>
 
-      <SidebarSeparator />
-
-      {/* Mailbox switcher */}
-      <SidebarHeader>
+        {/* Mailbox switcher + sign out */}
         <MailboxSwitcher
           mailboxes={mailboxes}
           selectedId={selectedMailboxId}
           onSelect={onSelectMailbox}
+          onSignOut={onSignOut}
         />
       </SidebarHeader>
-
-      <SidebarSeparator />
 
       <SidebarContent>
         {/* Navigation */}
@@ -202,46 +177,6 @@ export function AppSidebar({
           </SidebarGroup>
         )}
       </SidebarContent>
-
-      {/* User footer with dropdown sign-out */}
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton size="lg">
-                  <Avatar className="size-7 rounded-md">
-                    <AvatarFallback
-                      className={cn(
-                        "rounded-md text-xs font-semibold",
-                        userColors.bgClass,
-                        userColors.textClass,
-                      )}
-                    >
-                      {userInitial}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex min-w-0 flex-1 flex-col leading-tight">
-                    <span className="truncate text-sm font-medium">
-                      {userEmail}
-                    </span>
-                  </div>
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-[--radix-dropdown-menu-trigger-width]"
-                align="start"
-                side="top"
-              >
-                <DropdownMenuItem onSelect={onSignOut} className="gap-2">
-                  <LogOutIcon className="size-4" />
-                  <span>Sign out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
     </SidebarRoot>
   )
 }

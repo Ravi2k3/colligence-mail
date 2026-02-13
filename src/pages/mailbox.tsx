@@ -40,12 +40,14 @@ export function MailboxPage({ onSignOut }: MailboxPageProps) {
   const [mobileView, setMobileView] = useState<MobileView>("list")
   const [showSyncResult, setShowSyncResult] = useState<boolean>(false)
   const [showSkippedEmails, setShowSkippedEmails] = useState<boolean>(false)
+  const [isAiSearch, setIsAiSearch] = useState<boolean>(false)
+  const [aiSearchQuery, setAiSearchQuery] = useState<string>("")
 
   const { mailboxes } = useMailboxes()
   const { stats } = useMailboxStats(selectedMailboxId)
   const direction: string | null = activeFilter === "all" ? null : activeFilter
   const { threads, total, loading: threadsLoading, error: threadsError, hasMore, loadMore, refresh, markAsRead } =
-    useThreads(selectedMailboxId, searchQuery, direction)
+    useThreads(selectedMailboxId, searchQuery, direction, isAiSearch, aiSearchQuery)
   const { emails, loading: emailsLoading, error: emailsError } =
     useThreadEmails(selectedMailboxId, selectedThreadId)
 
@@ -79,6 +81,8 @@ export function MailboxPage({ onSignOut }: MailboxPageProps) {
     setSelectedMailboxId(mailboxId)
     setSearchQuery("")
     setActiveFilter("all")
+    setIsAiSearch(false)
+    setAiSearchQuery("")
   }, [])
 
   const handleSelectThread = useCallback((threadId: string) => {
@@ -97,6 +101,16 @@ export function MailboxPage({ onSignOut }: MailboxPageProps) {
     setSearchQuery("")
   }, [])
 
+  const handleToggleAiSearch = useCallback(() => {
+    setIsAiSearch((prev) => !prev)
+    setSearchQuery("")
+    setAiSearchQuery("")
+  }, [])
+
+  const handleSearchSubmit = useCallback(() => {
+    setAiSearchQuery(searchQuery.trim())
+  }, [searchQuery])
+
   const handleShowSkippedEmails = useCallback(() => {
     setShowSkippedEmails(true)
   }, [])
@@ -112,6 +126,9 @@ export function MailboxPage({ onSignOut }: MailboxPageProps) {
     onSelectThread: handleSelectThread,
     searchQuery,
     onSearchChange: setSearchQuery,
+    isAiSearch,
+    onToggleAiSearch: handleToggleAiSearch,
+    onSearchSubmit: handleSearchSubmit,
   }
 
   const detailContent = selectedThreadId ? (

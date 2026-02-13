@@ -6,6 +6,7 @@ import type {
   ThreadListResponse,
   SearchResponse,
   SearchResultEmail,
+  AgentSearchResponse,
 } from "@/types/api"
 
 const PAGE_SIZE = 50
@@ -22,10 +23,47 @@ interface UseThreadsResult {
   markAsRead: (threadId: string) => void
 }
 
+function groupSearchResults(results: SearchResultEmail[]): {
+  threads: ThreadSummary[]
+  count: number
+} {
+  const threadMap = new Map<string, SearchResultEmail[]>()
+  for (const r of results) {
+    const existing = threadMap.get(r.thread_id)
+    if (existing) {
+      existing.push(r)
+    } else {
+      threadMap.set(r.thread_id, [r])
+    }
+  }
+
+  const threads: ThreadSummary[] = Array.from(threadMap.values()).map(
+    (emails) => {
+      const latest = emails.reduce((a, b) =>
+        a.received_at > b.received_at ? a : b,
+      )
+      return {
+        id: latest.thread_id,
+        subject: latest.subject,
+        last_updated: latest.received_at,
+        email_count: emails.length,
+        latest_sender: latest.sender,
+        has_unread: false,
+        snippet: latest.body_text,
+        has_attachments: false,
+      }
+    },
+  )
+
+  return { threads, count: threadMap.size }
+}
+
 export function useThreads(
   mailboxId: string | null,
   searchQuery: string,
   direction: string | null,
+  isAiSearch: boolean,
+  aiSearchQuery: string,
 ): UseThreadsResult {
   const [threads, setThreads] = useState<ThreadSummary[]>([])
   const [total, setTotal] = useState<number>(0)
@@ -35,12 +73,17 @@ export function useThreads(
   const [refreshKey, setRefreshKey] = useState<number>(0)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Reset when mailbox, search query, or refresh key changes
+  // The active query depends on mode:
+  // - AI mode: only fires when aiSearchQuery changes (on Enter)
+  // - Keyword mode: fires on searchQuery changes (debounced)
+  const activeQuery: string = isAiSearch ? aiSearchQuery : searchQuery
+
+  // Reset when mailbox, active query, direction, or mode changes
   useEffect(() => {
     setThreads([])
     setTotal(0)
     setPage(1)
-  }, [mailboxId, searchQuery, direction, refreshKey])
+  }, [mailboxId, activeQuery, direction, isAiSearch, refreshKey])
 
   useEffect(() => {
     if (!mailboxId) return
@@ -55,51 +98,43 @@ export function useThreads(
       setLoading(true)
       setError(null)
 
-      const fetchPromise = searchQuery.trim()
-        ? post<SearchResponse>(`/mailboxes/${mailboxId}/search`, {
-            keywords: searchQuery.trim(),
-            page,
-            page_size: PAGE_SIZE,
-          }).then((data): ThreadListResponse => {
-            // Group emails by thread_id so a thread appears once, not per-email
-            const threadMap = new Map<string, SearchResultEmail[]>()
-            for (const r of data.results) {
-              const existing = threadMap.get(r.thread_id)
-              if (existing) {
-                existing.push(r)
-              } else {
-                threadMap.set(r.thread_id, [r])
-              }
-            }
-
-            const threads: ThreadSummary[] = Array.from(threadMap.values()).map(
-              (emails) => {
-                const latest = emails.reduce((a, b) =>
-                  a.received_at > b.received_at ? a : b,
-                )
-                return {
-                  id: latest.thread_id,
-                  subject: latest.subject,
-                  last_updated: latest.received_at,
-                  email_count: emails.length,
-                  latest_sender: latest.sender,
-                  has_unread: false,
-                  snippet: latest.body_text,
-                  has_attachments: false,
-                }
-              },
-            )
-
-            return {
-              threads,
-              total: threadMap.size,
-              page: data.page,
-              page_size: data.page_size,
-            }
+      const fetchPromise: Promise<ThreadListResponse> = (() => {
+        // AI search — uses the committed aiSearchQuery
+        if (isAiSearch && aiSearchQuery.trim()) {
+          return post<AgentSearchResponse>(
+            `/mailboxes/${mailboxId}/agent-search`,
+            {
+              query: aiSearchQuery.trim(),
+              page,
+              page_size: PAGE_SIZE,
+            },
+          ).then((data): ThreadListResponse => {
+            const { threads, count } = groupSearchResults(data.results)
+            return { threads, total: count, page: data.page, page_size: data.page_size }
           })
-        : get<ThreadListResponse>(
-            `/mailboxes/${mailboxId}/threads?page=${page}&page_size=${PAGE_SIZE}${direction ? `&direction=${direction}` : ""}`,
-          )
+        }
+
+        // Keyword search — uses the live searchQuery
+        if (!isAiSearch && searchQuery.trim()) {
+          return post<SearchResponse>(
+            `/mailboxes/${mailboxId}/search`,
+            {
+              keywords: searchQuery.trim(),
+              page,
+              page_size: PAGE_SIZE,
+            },
+          ).then((data): ThreadListResponse => {
+            const { threads, count } = groupSearchResults(data.results)
+            return { threads, total: count, page: data.page, page_size: data.page_size }
+          })
+        }
+
+        // Normal thread listing
+        const directionParam: string = direction ? `&direction=${direction}` : ""
+        return get<ThreadListResponse>(
+          `/mailboxes/${mailboxId}/threads?page=${page}&page_size=${PAGE_SIZE}${directionParam}`,
+        )
+      })()
 
       fetchPromise
         .then((data) => {
@@ -122,16 +157,22 @@ export function useThreads(
       return () => { cancelled = true }
     }
 
-    // Debounce search queries, fetch immediately for page changes or non-search
-    if (searchQuery.trim() && page === 1) {
+    // Debounce keyword search only (not AI search — that fires on Enter)
+    if (!isAiSearch && searchQuery.trim() && page === 1) {
       debounceRef.current = setTimeout(doFetch, DEBOUNCE_MS)
       return () => {
         if (debounceRef.current) clearTimeout(debounceRef.current)
       }
     }
 
+    // AI search with no committed query — don't fetch, show empty
+    if (isAiSearch && !aiSearchQuery.trim()) {
+      setLoading(false)
+      return
+    }
+
     return doFetch()
-  }, [mailboxId, searchQuery, direction, page, refreshKey])
+  }, [mailboxId, activeQuery, direction, isAiSearch, page, refreshKey])
 
   const hasMore = threads.length < total
 

@@ -93,6 +93,14 @@ export interface SearchResponse {
   page_size: number
 }
 
+export interface AgentSearchResponse {
+  interpreted_query: Record<string, unknown>
+  results: SearchResultEmail[]
+  total: number
+  page: number
+  page_size: number
+}
+
 export interface SkippedEmailSummary {
   sender: string
   subject: string | null
