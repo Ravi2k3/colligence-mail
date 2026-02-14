@@ -228,7 +228,7 @@ export function MailboxPage({ onSignOut }: MailboxPageProps) {
             <Separator orientation="vertical" className="mr-1 h-full" />
             <h1 className="shrink-0 text-sm font-medium">Colligence Mail</h1>
 
-            {sortedCategories.length > 0 && (
+            {sortedCategories.length > 0 ? (
               <Tabs
                 value={activeCategory ?? "all"}
                 onValueChange={handleCategoryChange}
@@ -245,6 +245,8 @@ export function MailboxPage({ onSignOut }: MailboxPageProps) {
                   ))}
                 </TabsList>
               </Tabs>
+            ) : (
+              <div className="flex-1" />
             )}
 
             {syncStatusText && (
