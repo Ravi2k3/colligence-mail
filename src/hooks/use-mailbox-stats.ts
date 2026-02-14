@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 import { get, ApiError } from "@/lib/api"
 import type { MailboxStats } from "@/types/api"
@@ -7,12 +7,14 @@ interface UseMailboxStatsResult {
   stats: MailboxStats | null
   loading: boolean
   error: string | null
+  refresh: () => void
 }
 
 export function useMailboxStats(mailboxId: string | null): UseMailboxStatsResult {
   const [stats, setStats] = useState<MailboxStats | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState<number>(0)
 
   useEffect(() => {
     if (!mailboxId) {
@@ -40,7 +42,11 @@ export function useMailboxStats(mailboxId: string | null): UseMailboxStatsResult
       })
 
     return () => { cancelled = true }
-  }, [mailboxId])
+  }, [mailboxId, refreshKey])
 
-  return { stats, loading, error }
+  const refresh = useCallback(() => {
+    setRefreshKey((prev) => prev + 1)
+  }, [])
+
+  return { stats, loading, error, refresh }
 }

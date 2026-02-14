@@ -91,10 +91,30 @@ export function useSyncStatus(
       })
   }, [mailboxId, startPolling])
 
-  // Stop polling on unmount or mailbox change
+  // On mount or mailbox change: check if a sync is already running
+  // (e.g. triggered by POST /mailboxes background thread at connection time)
   useEffect(() => {
-    return stopPolling
-  }, [mailboxId, stopPolling])
+    if (!mailboxId) return
+
+    let cancelled = false
+
+    get<SyncStatusResponse>(`/mailboxes/${mailboxId}/sync-status`)
+      .then((data) => {
+        if (cancelled) return
+        if (data.status === "syncing") {
+          setSyncStatus(data)
+          startPolling(mailboxId)
+        }
+      })
+      .catch(() => {
+        // Ignore — initial check is best-effort
+      })
+
+    return () => {
+      cancelled = true
+      stopPolling()
+    }
+  }, [mailboxId, startPolling, stopPolling])
 
   const isSyncing: boolean = syncStatus?.status === "syncing"
 

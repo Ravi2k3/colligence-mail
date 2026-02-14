@@ -3,12 +3,14 @@ import { clearToken, getToken } from "@/lib/auth"
 const BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1"
 
 export class ApiError extends Error {
-  constructor(
-    public readonly status: number,
-    public readonly detail: string,
-  ) {
+  readonly status: number
+  readonly detail: string
+
+  constructor(status: number, detail: string) {
     super(detail)
     this.name = "ApiError"
+    this.status = status
+    this.detail = detail
   }
 }
 
@@ -56,8 +58,11 @@ async function request<T>(
   return body as T
 }
 
-export function get<T>(path: string): Promise<T> {
-  return request<T>(path, { method: "GET" })
+export function get<T>(
+  path: string,
+  options?: { skipAuth?: boolean },
+): Promise<T> {
+  return request<T>(path, { method: "GET", ...options })
 }
 
 export function post<T>(

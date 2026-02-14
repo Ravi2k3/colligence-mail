@@ -4,6 +4,7 @@ export interface MailboxResponse {
   provider: string
   imap_host: string
   imap_port: number
+  is_primary: boolean
   is_active: boolean
   created_at: string
   updated_at: string
@@ -131,4 +132,16 @@ export interface SyncStatusResponse {
   emails_stored: number
   emails_skipped: number
   error: string | null
+}
+
+export interface ProviderInfoResponse {
+  provider: string
+  oauth_provider: string | null
+  imap_host: string
+  imap_port: number
+}
+
+export interface OAuthStartResponse {
+  authorization_url: string
+  state: string
 }

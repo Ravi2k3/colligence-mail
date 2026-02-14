@@ -11,4 +11,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // SPA fallback — serve index.html for all routes (e.g. /auth/callback)
+  // so the OAuth redirect doesn't 404 in preview/production mode.
+  appType: "spa",
 })

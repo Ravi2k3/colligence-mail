@@ -6,7 +6,6 @@ import {
   MailIcon,
   CalendarDaysIcon,
   FilterXIcon,
-  TagIcon,
 } from "lucide-react"
 
 import {
@@ -22,7 +21,7 @@ import {
   SidebarMenuBadge,
 } from "@/components/ui/sidebar"
 import { MailboxSwitcher } from "@/components/sidebar/mailbox-switcher"
-import { formatDateRange, capitalizeCategory } from "@/lib/format"
+import { formatDateRange } from "@/lib/format"
 import type { MailboxResponse, MailboxStats } from "@/types/api"
 
 type NavFilter = "all" | "inbound" | "outbound"
@@ -47,6 +46,7 @@ interface AppSidebarProps {
   stats: MailboxStats | null
   activeFilter: NavFilter
   onFilterChange: (filter: NavFilter) => void
+  onAddAccount: () => void
   onSignOut: () => void
   onShowSkippedEmails: () => void
 }
@@ -58,16 +58,10 @@ export function AppSidebar({
   stats,
   activeFilter,
   onFilterChange,
+  onAddAccount,
   onSignOut,
   onShowSkippedEmails,
 }: AppSidebarProps) {
-  // Sort categories by count descending
-  const sortedCategories: [string, number][] = stats
-    ? Object.entries(stats.category_breakdown).sort(
-        ([, a], [, b]) => b - a,
-      )
-    : []
-
   return (
     <SidebarRoot collapsible="offcanvas">
       <SidebarHeader>
@@ -86,6 +80,7 @@ export function AppSidebar({
           mailboxes={mailboxes}
           selectedId={selectedMailboxId}
           onSelect={onSelectMailbox}
+          onAddAccount={onAddAccount}
           onSignOut={onSignOut}
         />
       </SidebarHeader>
@@ -155,27 +150,6 @@ export function AppSidebar({
           </SidebarGroup>
         )}
 
-        {/* Categories */}
-        {sortedCategories.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Categories</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {sortedCategories.map(([category, count]) => (
-                  <SidebarMenuItem key={category}>
-                    <SidebarMenuButton className="cursor-default hover:bg-transparent active:bg-transparent">
-                      <TagIcon className="text-muted-foreground" />
-                      <span>{capitalizeCategory(category)}</span>
-                    </SidebarMenuButton>
-                    <SidebarMenuBadge>
-                      {count.toLocaleString()}
-                    </SidebarMenuBadge>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
       </SidebarContent>
     </SidebarRoot>
   )

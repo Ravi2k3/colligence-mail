@@ -1,4 +1,4 @@
-import { ChevronsUpDownIcon, LogOutIcon } from "lucide-react"
+import { ChevronsUpDownIcon, LogOutIcon, PlusIcon } from "lucide-react"
 
 import {
   DropdownMenu,
@@ -21,6 +21,7 @@ interface MailboxSwitcherProps {
   mailboxes: MailboxResponse[]
   selectedId: string | null
   onSelect: (mailboxId: string) => void
+  onAddAccount: () => void
   onSignOut: () => void
 }
 
@@ -28,6 +29,7 @@ export function MailboxSwitcher({
   mailboxes,
   selectedId,
   onSelect,
+  onAddAccount,
   onSignOut,
 }: MailboxSwitcherProps) {
   const selected = mailboxes.find((mb) => mb.id === selectedId)
@@ -93,6 +95,13 @@ export function MailboxSwitcher({
                 </DropdownMenuItem>
               )
             })}
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem onSelect={onAddAccount} className="gap-2">
+              <PlusIcon className="size-4" />
+              <span>Add account</span>
+            </DropdownMenuItem>
 
             <DropdownMenuSeparator />
 

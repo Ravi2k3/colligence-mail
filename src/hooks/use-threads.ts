@@ -64,6 +64,7 @@ export function useThreads(
   direction: string | null,
   isAiSearch: boolean,
   aiSearchQuery: string,
+  category: string | null = null,
 ): UseThreadsResult {
   const [threads, setThreads] = useState<ThreadSummary[]>([])
   const [total, setTotal] = useState<number>(0)
@@ -78,12 +79,12 @@ export function useThreads(
   // - Keyword mode: fires on searchQuery changes (debounced)
   const activeQuery: string = isAiSearch ? aiSearchQuery : searchQuery
 
-  // Reset when mailbox, active query, direction, or mode changes
+  // Reset when mailbox, active query, direction, category, or mode changes
   useEffect(() => {
     setThreads([])
     setTotal(0)
     setPage(1)
-  }, [mailboxId, activeQuery, direction, isAiSearch, refreshKey])
+  }, [mailboxId, activeQuery, direction, category, isAiSearch, refreshKey])
 
   useEffect(() => {
     if (!mailboxId) return
@@ -131,8 +132,9 @@ export function useThreads(
 
         // Normal thread listing
         const directionParam: string = direction ? `&direction=${direction}` : ""
+        const categoryParam: string = category ? `&category=${encodeURIComponent(category)}` : ""
         return get<ThreadListResponse>(
-          `/mailboxes/${mailboxId}/threads?page=${page}&page_size=${PAGE_SIZE}${directionParam}`,
+          `/mailboxes/${mailboxId}/threads?page=${page}&page_size=${PAGE_SIZE}${directionParam}${categoryParam}`,
         )
       })()
 
@@ -172,7 +174,7 @@ export function useThreads(
     }
 
     return doFetch()
-  }, [mailboxId, activeQuery, direction, isAiSearch, page, refreshKey])
+  }, [mailboxId, activeQuery, direction, category, isAiSearch, page, refreshKey])
 
   const hasMore = threads.length < total
 
